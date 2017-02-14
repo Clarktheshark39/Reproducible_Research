@@ -5,18 +5,18 @@ date: "2/13/2017"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, echo=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## **Introduction**
-
+***
 Sever Weather Events have reaches far and wide in the US both in terms of health and economic input. Through the following analysis, these impacts will be explored through the NAOO Storm Database. 
 
 The injuries and fatalities, along with the property and crop damage will be our measures for impact in this storm data, which covers the time period from 1950 to November 2011.
 
 ## **Data Processing**
-
+***
 The following data can be found at the below link. Along with the initial link to the data, there is additional documentation of the database:
 
 * [Storm Data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2) 
@@ -25,37 +25,183 @@ The following data can be found at the below link. Along with the initial link t
 
 The below packages will used during the analysis:
 
-```{r pressure, echo=FALSE}
+```{r Libraries, message=FALSE}
 library(dplyr)
 library(ggplot2)
 ```
 
+Firstly, the data is downloaded: 
 
-
-
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r Download Data, cache=TRUE}
+URL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+setwd("C:/Users/cporter01/Downloads")
+download.file(URL, "C:/Users/cporter01/Downloads/StormData.csv.bz2")
+storm <- read.csv(bzfile("StormData.csv.bz2"), header = TRUE)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Then, after viewing the structure of the data, only the relelvant variables are selected form the data. 
 
-## **Health Impacts**
+```{r Str}
+str(storm)
+```
+```{r Processing}
+storm <- select(storm, EVTYPE, FATALITIES, INJURIES, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP)
+str(storm)
+```
+
+We can see that the PROPDMGEXP and CROPDMGEXP columns are addressing the magnitude for the numerican value in the PROPDMG and CROPDMG columns. Below are the unique values from each of the EXP columns:
+
+```{r PropEXP}
+unique(storm$PROPDMGEXP)
+```
+
+```{r CropEXP}
+unique(storm$CROPDMGEXP)
+```
+
+We find the given levels of each factor variable above and will treat each of the values as follows:
+
+```{r format PropEXP}
+storm$PROPEXP[storm$PROPDMGEXP == "K"] <- 1000
+storm$PROPEXP[storm$PROPDMGEXP == "M"] <- 1e+06
+storm$PROPEXP[storm$PROPDMGEXP == ""] <- 1
+storm$PROPEXP[storm$PROPDMGEXP == "B"] <- 1e+09
+storm$PROPEXP[storm$PROPDMGEXP == "m"] <- 1e+06
+storm$PROPEXP[storm$PROPDMGEXP == "0"] <- 1
+storm$PROPEXP[storm$PROPDMGEXP == "5"] <- 1e+05
+storm$PROPEXP[storm$PROPDMGEXP == "6"] <- 1e+06
+storm$PROPEXP[storm$PROPDMGEXP == "4"] <- 10000
+storm$PROPEXP[storm$PROPDMGEXP == "2"] <- 100
+storm$PROPEXP[storm$PROPDMGEXP == "3"] <- 1000
+storm$PROPEXP[storm$PROPDMGEXP == "h"] <- 100
+storm$PROPEXP[storm$PROPDMGEXP == "7"] <- 1e+07
+storm$PROPEXP[storm$PROPDMGEXP == "H"] <- 100
+storm$PROPEXP[storm$PROPDMGEXP == "1"] <- 10
+storm$PROPEXP[storm$PROPDMGEXP == "8"] <- 1e+08
+# 0 is assigned to the invalid exponent data
+storm$PROPEXP[storm$PROPDMGEXP == "+"] <- 0
+storm$PROPEXP[storm$PROPDMGEXP == "-"] <- 0
+storm$PROPEXP[storm$PROPDMGEXP == "?"] <- 0
+# Compute the property damage value
+storm$Value.PROPDMG <- storm$PROPDMG * storm$PROPEXP
+```
+
+```{r format CropEXP}
+storm$CROPEXP[storm$CROPDMGEXP == "M"] <- 1e+06
+storm$CROPEXP[storm$CROPDMGEXP == "K"] <- 1000
+storm$CROPEXP[storm$CROPDMGEXP == "m"] <- 1e+06
+storm$CROPEXP[storm$CROPDMGEXP == "B"] <- 1e+09
+storm$CROPEXP[storm$CROPDMGEXP == "0"] <- 1
+storm$CROPEXP[storm$CROPDMGEXP == "k"] <- 1000
+storm$CROPEXP[storm$CROPDMGEXP == "2"] <- 100
+storm$CROPEXP[storm$CROPDMGEXP == ""] <- 1
+# 0 is assigned to the invalid exponent data
+storm$CROPEXP[storm$CROPDMGEXP == "?"] <- 0
+# Compute the crop damage value
+storm$Value.CROPDMG <- storm$CROPDMG * storm$CROPEXP
+```
+
+We can now see the new columns of the storm data:
+
+```{r Summary, echo=FALSE}
+head(storm)
+```
+
+## **Results**
+***
+### **Health Impacts**
+
+By summarizing the data, we can view which Event Types cause both the most injuries and the most fatalities. 
+
+```{r Health 1st Look}
+stormInjuries <- summarize(group_by(storm, EVTYPE), Injuries = sum(INJURIES, na.rm = T))
+stormInjuries <- arrange(stormInjuries, desc(Injuries))
+stormFatalities <- summarize(group_by(storm, EVTYPE), Fatalities = sum(FATALITIES, na.rm = T))
+stormFatalities <- arrange(stormFatalities, desc(Fatalities))
+```
+
+Below you can see the top ten Event Types responsible for both Injuries and Fatalities:
+```{r Top 10, echo=FALSE}
+head(stormInjuries, 10)
+head(stormFatalities, 10)
+```
+
+The above tables clearly show that Tornados do the most damage across the US by a wide margin, as they are both the leading cause of fatalities and injuries. Not only do they lead both catagories, but they do so convincingly. Having caused `r round((sum(stormInjuries$Injuries[1])*100 / sum(stormInjuries$Injuries)), 2)`% of total Injuries and `r round((sum(stormFatalities$Fatalities[1])*100 / sum(stormFatalities$Fatalities)), 2)`% of total Fatalities, Tornados are responsible for a disproportionate amount of damage to the the Health to Americans.
+
+To get a better sense for the causes of the most wide spread damage, I have created a new metric that considers both Injuries and Fatalities. To account for the increased impact of Fatalities when compared to Injuries, I created the Health Damage Index, which assigns one point to each Injury and three points to each Fatality caused by a given Weather Event. This crudely estimates the impact of a death as three times that of the average Injury. 
+
+```{r Health Impact Index}
+stormHealth <- summarize(group_by(storm, EVTYPE), Injuries = sum(INJURIES, na.rm = T), Fatalities = sum(FATALITIES, na.rm = T)) 
+stormHealth$Health.Damage.Index <- stormHealth$Injuries + 3*stormHealth$Fatalities
+stormHealth <- arrange(stormHealth, desc(Health.Damage.Index))
+head(stormHealth, 10)
+```
+
+Below you will find a plot of the top 20 most impactful weather events.
+
+```{r Health Plot, warning=FALSE}
+HealthPlot <- stormHealth[1:20, ]
+ggplot(HealthPlot, aes(x=reorder(EVTYPE, Health.Damage.Index), y=Health.Damage.Index)) +
+  theme(text = element_text(size = 12, family = "Calibri")) +
+  geom_bar(stat="identity", fill = "dodgerblue") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  xlab("Weather Event Type") + ylab("Health Damage Index") +
+  ggtitle("Health Impact by Weather Event Type") +
+  theme(plot.title = element_text(hjust = 0.5, vjust = 0.5, face = "bold"))
+```
+
+##### plotting with both injuries and fatalities added together in bar plot.
+grldchs <- melt(stormHealth, id.vars = "EVTYPE")
+ggplot(grldchs, aes(x=EVTYPE, y=value, fill=value)) + geom_bar(stat="identity")
+###### works but way too crazy...need to drop the lowest values somehow and only keep the top 10% or something.
+
+### **Economic Impacts**
+
+By summarizing the data, we can view the which Event Types lead to the most economic impact as measured by Property and Crop damage.
+
+```{r Property Damage}
+stormPropDmg <- summarize(group_by(storm, EVTYPE), Prop.Dmg.Total = sum(Value.PROPDMG, na.rm = T))
+stormPropDmg <- arrange(stormPropDmg, desc(Prop.Dmg.Total))
+stormCropDmg <- summarize(group_by(storm, EVTYPE), Crop.Dmg.Total = sum(Value.CROPDMG, na.rm = T))
+stormCropDmg <- arrange(stormCropDmg, desc(Crop.Dmg.Total))
+```
+
+Below you can see the top ten Event Types responsible for both Property Damage and Crop Damage:
+
+```{r prop head, echo=FALSE}
+head(stormPropDmg)
+```
+
+```{r crop head, echo=FALSE}
+head(stormCropDmg)
+```
+
+The above tables show that Flood is the most damaging event in terms of Property Damage and that Drought is the most damaging in terms of Crop Damage. Flooding is responsible for `r round((sum(stormPropDmg$Prop.Dmg.Total[1])*100 / sum(stormPropDmg$Prop.Dmg.Total)), 2)`% of the total Property Damage, which Drought is responsible for `r round((sum(stormCropDmg$Crop.Dmg.Total[1])*100 / sum(stormCropDmg$Crop.Dmg.Total)), 2)`% of the total Crop Damage.
+
+To see which weather events have contributed the most total damage, I have added the damage values for each Event Type and plotted the results below:
+
+```{r Total Damage}
+stormDamage <- summarize(group_by(storm, EVTYPE), Prop.Dmg.Total = sum(Value.PROPDMG, na.rm = T), Crop.Dmg.Total = sum(Value.CROPDMG, na.rm = T))
+stormDamage$Total.Damage.Value <- stormDamage$Prop.Dmg.Total + stormDamage$Crop.Dmg.Total
+stormDamage <- arrange(stormDamage, desc(Total.Damage.Value))
+stormDamage[1:10, c(1,4)]
+```
+
+```{r Damage Plot, warning=FALSE}
+DamagePlot <- stormDamage[1:20, ]
+ggplot(DamagePlot, aes(x=reorder(EVTYPE, Health.Damage.Index), y=Health.Damage.Index)) +
+  theme(text = element_text(size = 12, family = "Calibri")) +
+  geom_bar(stat="identity", fill = "dodgerblue") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  xlab("Weather Event Type") + ylab("Health Damage Index") +
+  ggtitle("Health Impact by Weather Event Type") +
+  theme(plot.title = element_text(hjust = 0.5, vjust = 0.5, face = "bold"))
+```
 
 
 
-
-
-## **Economic Impacts**
-
-
-
-
-
-## **Summary**
-
+## **Synopsis**
+***
 
 
 
