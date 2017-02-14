@@ -1,0 +1,63 @@
+---
+title: "The Health and Economic Affects of Severe Weather Events in the US"
+author: "Clark Porter"
+date: "2/13/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## **Introduction**
+
+Sever Weather Events have reaches far and wide in the US both in terms of health and economic input. Through the following analysis, these impacts will be explored through the NAOO Storm Database. 
+
+The injuries and fatalities, along with the property and crop damage will be our measures for impact in this storm data, which covers the time period from 1950 to November 2011.
+
+## **Data Processing**
+
+The following data can be found at the below link. Along with the initial link to the data, there is additional documentation of the database:
+
+* [Storm Data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2) 
+* [Storm Data Documentation](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf)
+* [National Climatic Data Center Storm Events FAQ](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Events-FAQ%20Page.pdf)
+
+The below packages will used during the analysis:
+
+```{r pressure, echo=FALSE}
+library(dplyr)
+library(ggplot2)
+```
+
+
+
+
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## **Health Impacts**
+
+
+
+
+
+## **Economic Impacts**
+
+
+
+
+
+## **Summary**
+
+
+
+
+
+
